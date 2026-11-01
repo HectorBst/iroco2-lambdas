@@ -16,16 +16,18 @@ start_containers() {
 }
 
 deploy_lambda() {
-  # Build Python dependencies and zip sources
+  # Build Python dependencies and zip sources in a temporary directory,
+  # removed on exit, so that each run packages only the current sources
+  BUILD_DIR=$(mktemp -d)
+  trap 'rm -rf "$BUILD_DIR"' EXIT
   python3 -m venv venv
   . venv/bin/activate
-  mkdir -p cur_processor
-  cp -r src cur_processor/
-  pip install --platform manylinux2014_x86_64 --target cur_processor/ -r requirements.txt --only-binary=:all:
-  cd cur_processor
-  zip -r src.zip .
+  mkdir "$BUILD_DIR/cur_processor"
+  cp -r src "$BUILD_DIR/cur_processor/"
+  pip install --platform manylinux2014_x86_64 --target "$BUILD_DIR/cur_processor/" -r requirements.txt --only-binary=:all:
+  (cd "$BUILD_DIR/cur_processor" && zip -r ../src.zip .)
 
-  aws --endpoint-url="$AWS_ENDPOINT_URL" --region="$AWS_REGION" s3 cp ../cur_processor/src.zip s3://$LAMBDA_BUCKET_NAME/lambda/cur/iroco2/cur_processor --checksum-algorithm SHA256
+  aws --endpoint-url="$AWS_ENDPOINT_URL" --region="$AWS_REGION" s3 cp "$BUILD_DIR/src.zip" s3://$LAMBDA_BUCKET_NAME/lambda/cur/iroco2/cur_processor --checksum-algorithm SHA256
 
   aws --endpoint-url="$AWS_ENDPOINT_URL" --region="$AWS_REGION" lambda update-function-code \
       --function-name lambda-cur-processor-iroco2 \
