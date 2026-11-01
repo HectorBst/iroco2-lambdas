@@ -2,7 +2,7 @@
 
 set -o errexit # This flag is a MUST HAVE!
 
-GIT_ROOT=$(git rev-parse --show-toplevel)
+FUNCTION_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 LAMBDA_BUCKET_NAME="lambda-cur-iroco2-local"
 
 start_containers() {
@@ -30,13 +30,13 @@ deploy_lambda() {
   aws --endpoint-url="$AWS_ENDPOINT_URL" --region="$AWS_REGION" lambda update-function-code \
       --function-name lambda-cur-processor-iroco2 \
       --s3-bucket $LAMBDA_BUCKET_NAME \
-      --s3-key lambda/cur/iroco2/cur_processor
+      --s3-key lambda/cur/iroco2/cur_processor \
       --no-cli-pager
   deactivate
 }
 
-# Moves to root repository
-pushd "$GIT_ROOT"
+# Moves to the lambda function directory
+pushd "$FUNCTION_DIR"
 
 echo "Setting environment variables"
 export AWS_REGION="eu-west-3"
@@ -47,7 +47,7 @@ export AWS_ENDPOINT_URL="http://localhost:4566"
 # Start docker compose stack
 start_containers
 
-pushd "$GIT_ROOT/tf"
+pushd "$FUNCTION_DIR/tf"
 terraform init -reconfigure
 terraform apply -var-file="tfvars/local.tfvars" -var-file="env-configs/local.tfvars" -auto-approve
 
