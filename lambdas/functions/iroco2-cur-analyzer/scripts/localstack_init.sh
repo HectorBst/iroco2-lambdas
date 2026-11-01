@@ -2,7 +2,7 @@
 
 set -o errexit # This flag is a MUST HAVE!
 
-FUNCTION_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+FUNCTION_DIR=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 LAMBDA_BUCKET_NAME="lambda-cur-iroco2-local"
 
 start_containers() {
